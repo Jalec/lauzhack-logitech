@@ -9,19 +9,14 @@ const store = createXRStore();
 const Note = ({ position, content, onChangeContent }) => {
   return (
     <group position={position}>
-      <mesh>
-        {/* A simple sphere as the note marker */}
-        <sphereGeometry args={[0.1, 16, 16]} />
-        <meshStandardMaterial color="blue" />
-      </mesh>
       <Text
-        position={[0, 0.2, 0]} // Adjust text position relative to the note marker
-        fontSize={0.2}
+        position={[0, 0.1, 0]} // Adjust text position relative to the note marker
+        fontSize={0.05}
         color="black"
         anchorX="center"
         anchorY="middle"
       >
-        {content || "Click to add note"}
+        {content}
       </Text>
     </group>
   );
@@ -32,9 +27,6 @@ const Displayer = ({ socket, gltfScene }) => {
   const [content, setContent] = useState("");
   const sceneRef = useRef();
 
-  useEffect(() => {
-    console.log(gltfScene);
-  }, []);
   const handleAddNote = (event) => {
     const { point } = event;
     setNotes([...notes, { position: point, content }]);
@@ -60,27 +52,53 @@ const Displayer = ({ socket, gltfScene }) => {
     );
   };
 
+  const handleDownload = () => {
+    if (!sceneRef.current) return;
+
+    const exporter = new GLTFExporter();
+
+    exporter.parse(
+      sceneRef.current, // The scene or group you want to export
+      (gltf) => {
+        // Convert GLTF to a Blob and trigger the download
+        const blob = new Blob([JSON.stringify(gltf)], {
+          type: "application/json",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "scene.gltf"; // Set the file name
+        link.click();
+      },
+      { binary: true } // Set to true for GLB export (binary format)
+    );
+  };
   return (
-    <div className="mt-8 flex justify-center items-center h-full ">
-      <div className="relative w-[800px] h-[600px] bg-white border-2 border-black rounded-lg shadow-lg">
+    <div className=" flex justify-center items-center">
+      <div className="relative w-[800px] h-[600px] bg-white border-2 border-black-500 rounded-lg shadow-lg">
         <input
           type="text"
           value={content}
           onChange={handleContentChange}
-          placeholder="Enter note content"
-          className="border-black border-2 absolute top-20 left-20 z-10 p-2 text-base"
+          placeholder="Enter note..."
+          className="border-blue-500 border-2  rounded-lg absolute bottom-3 right-5 z-10 p-2 text-base text-black"
         />
         {/* Export Button */}
         <button
           onClick={handleExport}
-          className="absolute z-10 bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600"
+          className="absolute z-10 bottom-3 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600"
         >
-          Export 3D Object
+          Add note
+        </button>
+        <button
+          onClick={handleDownload}
+          className="absolute z-10 bottom-3 left-16 transform -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600"
+        >
+          Save work
         </button>
         {/* <button onClick={() => store.enterVR()}>Enter VR</button> */}
         <Canvas
-          className="w-2 h-full bg-gray-100" // Make the canvas take up the full screen
-          camera={{ position: [0, 0, 5] }} // Position the camera 5 units away from the center
+          className="w-2 h-full bg-gray-100"
+          camera={{ position: [0, 0, 2], fov: 45 }}
           onClick={handleAddNote}
         >
           <XR store={store}>
@@ -92,15 +110,16 @@ const Displayer = ({ socket, gltfScene }) => {
 
             {/* Add OrbitControls to allow the user to move around the 3D scene */}
             <OrbitControls />
-
-            {gltfScene && <primitive object={gltfScene} />}
-            {notes.map((note, index) => (
-              <Note
-                key={index}
-                position={note.position}
-                content={note.content}
-              />
-            ))}
+            <group ref={sceneRef}>
+              {gltfScene && <primitive object={gltfScene} />}
+              {notes.map((note, index) => (
+                <Note
+                  key={index}
+                  position={note.position}
+                  content={note.content}
+                />
+              ))}
+            </group>
           </XR>
         </Canvas>
       </div>
