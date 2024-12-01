@@ -1,6 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber"; // Canvas is the container for the 3D scene
-import { OrbitControls, Text } from "@react-three/drei"; // OrbitControls lets us move the camera around
+import { OrbitControls, Text, useGLTF } from "@react-three/drei"; // OrbitControls lets us move the camera around
 import { GLTFExporter } from "three-stdlib"; // Import the GLTFExporter
 import { XR, createXRStore } from "@react-three/xr";
 
@@ -27,11 +27,14 @@ const Note = ({ position, content, onChangeContent }) => {
   );
 };
 
-const Displayer = ({ socket }) => {
+const Displayer = ({ socket, gltfScene }) => {
   const [notes, setNotes] = useState([]);
   const [content, setContent] = useState("");
   const sceneRef = useRef();
 
+  useEffect(() => {
+    console.log(gltfScene);
+  }, []);
   const handleAddNote = (event) => {
     const { point } = event;
     setNotes([...notes, { position: point, content }]);
@@ -74,7 +77,7 @@ const Displayer = ({ socket }) => {
         >
           Export 3D Object
         </button>
-        <button onClick={() => store.enterVR()}>Enter VR</button>
+        {/* <button onClick={() => store.enterVR()}>Enter VR</button> */}
         <Canvas
           className="w-2 h-full bg-gray-100" // Make the canvas take up the full screen
           camera={{ position: [0, 0, 5] }} // Position the camera 5 units away from the center
@@ -89,22 +92,8 @@ const Displayer = ({ socket }) => {
 
             {/* Add OrbitControls to allow the user to move around the 3D scene */}
             <OrbitControls />
-            <group ref={sceneRef}>
-              {/* Render a simple cube */}
-              <mesh position={[-1.5, 0, 0]}>
-                <boxGeometry args={[1, 1, 1]} />{" "}
-                {/* Box geometry with width, height, and depth */}
-                <meshStandardMaterial color="orange" />{" "}
-                {/* Material that makes the cube orange */}
-              </mesh>
 
-              <mesh position={[1.5, 0, 0]}>
-                <boxGeometry args={[1, 1, 1]} />{" "}
-                {/* Box geometry with width, height, and depth */}
-                <meshStandardMaterial color="orange" />{" "}
-                {/* Material that makes the cube orange */}
-              </mesh>
-            </group>
+            {gltfScene && <primitive object={gltfScene} />}
             {notes.map((note, index) => (
               <Note
                 key={index}
